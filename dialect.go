@@ -33,6 +33,8 @@ const (
 	NoDialect Dialect = iota
 	// PostgreSQL mode is to be used to automatically replace ? placeholders with $1, $2...
 	PostgreSQL
+	// Oracle mode is to be used to automatically replace ? placeholders with :1, :2...
+	Oracle
 )
 
 var defaultDialect = NoDialect
@@ -97,8 +99,8 @@ func (b Dialect) DeleteFrom(tableName string) *Stmt {
 	return q.DeleteFrom(tableName)
 }
 
-// writePg function copies s into buf and replaces ? placeholders with $1, $2...
-func writePg(argNo int, s []byte, buf *bytebufferpool.ByteBuffer) (int, error) {
+// writeChr function copies s into buf and replaces ? placeholders with another char c numbered ones like $1, $2, :1, :2...
+func writeChr(argNo int, s []byte, c byte, buf *bytebufferpool.ByteBuffer) (int, error) {
 	var err error
 	start := 0
 	// Iterate by runes
@@ -119,7 +121,7 @@ func writePg(argNo int, s []byte, buf *bytebufferpool.ByteBuffer) (int, error) {
 			_, err = buf.Write(s[start:pos])
 			start = pos + 1
 			if err == nil {
-				err = buf.WriteByte('$')
+				err = buf.WriteByte(c)
 				if err == nil {
 					buf.B = strconv.AppendInt(buf.B, int64(argNo), 10)
 					argNo++

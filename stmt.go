@@ -549,7 +549,9 @@ func (q *Stmt) String() string {
 			}
 			s := q.buf.B[chunk.bufLow:chunk.bufHigh]
 			if chunk.argLen > 0 && q.dialect == PostgreSQL {
-				argNo, _ = writePg(argNo, s, buf)
+				argNo, _ = writeChr(argNo, s, '$', buf)
+			} else if chunk.argLen > 0 && q.dialect == Oracle {
+				argNo, _ = writeChr(argNo, s, ':', buf)
 			} else {
 				buf.Write(s)
 			}

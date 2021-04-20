@@ -101,6 +101,16 @@ func TestPgPlaceholderEscape(t *testing.T) {
 	assert.Equal(t, "SELECT id FROM series WHERE time ?> $1 + 1 AND time < $2", sql)
 }
 
+func TestOraclePlaceholders(t *testing.T) {
+	q := sqlf.Oracle.From("series").
+		Select("id").
+		Where("time > ?", time.Now().Add(time.Hour*-24*14)).
+		Where("id").In(1, 2)
+	defer q.Close()
+	sql, _ := q.String(), q.Args()
+	assert.Equal(t, "SELECT id FROM series WHERE time > :1 AND id IN (:2,:3)", sql)
+}
+
 func TestTo(t *testing.T) {
 	var (
 		field1 int
