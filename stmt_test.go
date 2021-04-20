@@ -27,6 +27,28 @@ func TestBasicSelect(t *testing.T) {
 	assert.Equal(t, []interface{}{42, 1000}, args)
 }
 
+func TestOrWhere(t *testing.T) {
+	q := sqlf.From("table").Select("id").
+		Where("name LIKE ? || '%'", "name").
+		OrWhere("email LIKE ? || '%'", "name")
+	defer q.Close()
+	sql, args := q.String(), q.Args()
+	assert.Equal(t, "SELECT id FROM table WHERE name LIKE ? || '%' OR email LIKE ? || '%'", sql)
+	assert.Equal(t, []interface{}{"name", "name"}, args)
+}
+
+func TestComplexWhere(t *testing.T) {
+	q := sqlf.From("table").Select("id").
+		Where("is_active = ?", 1).
+		WhereFunc(func(qq *sqlf.Stmt) {
+			qq.Where("status").In(1, 2).OrWhere("user_id = ?", 10)
+		})
+	defer q.Close()
+	sql, args := q.String(), q.Args()
+	assert.Equal(t, "SELECT id FROM table WHERE is_active = ? AND ( status IN (?,?) OR user_id = ? )", sql)
+	assert.Equal(t, []interface {}{1, 1, 2, 10}, args)
+}
+
 func TestMixedOrder(t *testing.T) {
 	q := sqlf.Select("id").Where("id > ?", 42).From("table").Where("id < ?", 1000)
 	defer q.Close()

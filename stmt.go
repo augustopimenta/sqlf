@@ -316,7 +316,7 @@ func (q *Stmt) From(expr string, args ...interface{}) *Stmt {
 }
 
 /*
-Where adds a filter:
+Where adds a filter with AND as separator:
 
 	sqlf.From("users").
 		Select("id, name").
@@ -326,6 +326,40 @@ Where adds a filter:
 */
 func (q *Stmt) Where(expr string, args ...interface{}) *Stmt {
 	q.addChunk(posWhere, "WHERE", expr, args, " AND ")
+	return q
+}
+
+/*
+OrWhere adds a filter with OR as separator:
+
+	sqlf.From("users").
+		Select("id, name").
+		Where("name = ?").
+		OrWhere("email = ?", email)
+
+*/
+func (q *Stmt) OrWhere(expr string, args ...interface{}) *Stmt {
+	q.addChunk(posWhere, "WHERE", expr, args, " OR ")
+	return q
+}
+
+/*
+WhereFunc adds a filter parentheses group:
+
+	sqlf.From("users").
+		Select("id, name").
+		WhereFunc(func(q *sqlf.Stmt) {
+			q.Where("status").In(1, 2).OrWhere("finished IS NULL")
+		}).
+		Where("created_at >= ?", created)
+
+*/
+func (q *Stmt) WhereFunc(expr func(q *Stmt)) *Stmt {
+	i := q.addChunk(posWhere, "WHERE", "(", nil, " AND ")
+	q.chunks[i].hasExpr = false
+	expr(q)
+	q.addChunk(posWhere, "", " )", nil, "")
+
 	return q
 }
 
